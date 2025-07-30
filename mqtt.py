@@ -24,9 +24,10 @@ class MQTT:
         self.registered_callbacks = []
         self.state_callbacks = []
         self.configuration = Configuration().mqtt_config
+        self.mqtt_prefix = self.configuration.prefix
         if self.configuration.enabled:
             from umqtt.simple import MQTTClient
-            self.client = MQTTClient(self.configuration.prefix, self.configuration.broker, user=None,
+            self.client = MQTTClient(self.mqtt_prefix, self.configuration.broker, user=None,
                                      password=None, keepalive=300, ssl=False, ssl_params={})
             self.connect()
             scheduler.schedule(SCHEDULER_MQTT_HEARTBEAT, 250,
@@ -64,17 +65,18 @@ class MQTT:
         self.send_state()
 
     def mqtt_callback(self, topic, msg):
-        t = topic.decode().lstrip(mqtt_prefix)
+        t = topic.decode().lstrip(self.mqtt_prefix)
         for c in self.registered_callbacks:
             if t == c.topic:
                 c.callback(topic, msg)
 
     def send_event(self, topic: str, msg: str):
-        topic = mqtt_prefix + topic
+        topic = self.mqtt_prefix + topic
         self.client.publish(topic, msg)
 
     def send_state(self):
-        self.client.publish(mqtt_base_topic, self.build_state())
+        topic = self.mqtt_prefix + "state"
+        self.client.publish(topic, self.build_state())
 
     def build_state(self):
         state = dict()

@@ -10,6 +10,14 @@ def singleton(class_):
 
 def partial(func, *args, **kwargs):
     def inner(*iargs, **ikwargs):
-        return func(*args, *iargs, **kwargs, **ikwargs)
+        # Combine the positional arguments (this part is fine)
+        combined_args = args + iargs
+
+        # Combine the keyword arguments using update()
+        combined_kwargs = kwargs.copy() # Start with a copy of kwargs
+        combined_kwargs.update(ikwargs) # Add/overwrite with ikwargs
+
+        # Call the function with the combined arguments
+        return func(*combined_args, **combined_kwargs)
 
     return inner
