@@ -26,7 +26,7 @@ class MQTT:
         self.configuration = Configuration().mqtt_config
         self.mqtt_prefix = self.configuration.prefix
         if self.configuration.enabled:
-            from umqtt.simple import MQTTClient
+            from umqtt.robust import MQTTClient
             self.client = MQTTClient(self.mqtt_prefix, self.configuration.broker, user=None,
                                      password=None, keepalive=300, ssl=False, ssl_params={})
             self.connect()

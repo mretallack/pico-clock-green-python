@@ -1,4 +1,5 @@
 from constants import CONFIGURATION_FILE, CONFIGURATION_RUN_BLINK_TIME_COLON, CONFIGURATION_RUN_CLOCK_TYPE, CONFIGURATION_RUN_AUTOLIGHT, CONFIGURATION_RUN_SHOW_TEMP, CONFIGURATION_MQTT_BROKER, CONFIGURATION_MQTT_CONFIG, CONFIGURATION_MQTT_ENABLED, CONFIGURATION_MQTT_PREFIX, CONFIGURATION_RUN_CONFIG, CONFIGURATION_RUN_TEMP, CONFIGURATION_WIFI_CONFIG, CONFIGURATION_WIFI_ENABLED, CONFIGURATION_WIFI_HOSTNAME, CONFIGURATION_WIFI_SSID, CONFIGURATION_WIFI_PASSPHRASE, CONFIGURATION_WIFI_NTP_ENABLED, CONFIGURATION_WIFI_NTP_PTZ
+from constants import CONFIGURATION_ALARM_CONFIG, CONFIGURATION_ALARM_ENABLE, CONFIGURATION_ALARM_HOUR, CONFIGURATION_ALARM_MINUTE
 from util import singleton
 from helpers import read_json_file, write_json_file
 
@@ -20,6 +21,13 @@ class Configuration:
             self.broker = broker
             self.prefix = prefix
             self.base_topic = prefix + "/"
+
+    class AlarmConfiguration:
+        def __init__(self, enabled: bool, hour: int, minute: int) -> None:
+            self.enabled = enabled
+            self.hour = hour
+            self.minute = minute
+
 
     def __init__(self) -> None:
         self.config = {}
@@ -55,6 +63,12 @@ class Configuration:
             broker=self.config[CONFIGURATION_MQTT_CONFIG][CONFIGURATION_MQTT_BROKER],
             prefix=self.config[CONFIGURATION_MQTT_CONFIG][CONFIGURATION_MQTT_PREFIX]
         )
+
+        self.alarm_config = self.AlarmConfiguration(
+            enabled=self.config[CONFIGURATION_ALARM_CONFIG][CONFIGURATION_ALARM_ENABLE],
+            hour=self.config[CONFIGURATION_ALARM_CONFIG][CONFIGURATION_ALARM_HOUR],
+            minute=self.config[CONFIGURATION_ALARM_CONFIG][CONFIGURATION_ALARM_MINUTE]
+        )        
 
     def write_config_file(self):
         write_json_file(CONFIGURATION_FILE, self.config)

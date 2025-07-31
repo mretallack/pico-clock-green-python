@@ -1,6 +1,7 @@
 from utime import sleep
 from display import Display
 from pico_temperature import PicoTemperature
+from alarm import Alarm
 from scheduler import Scheduler
 from clock import Clock
 from apps import Apps, App
@@ -35,6 +36,7 @@ wlan = WLAN(scheduler)
 mqtt = MQTT(scheduler)
 display = Display(scheduler)
 pico_temperature = PicoTemperature(scheduler, mqtt)
+alarm = Alarm(scheduler, mqtt)
 temperature = Temperature(mqtt)
 apps = Apps(scheduler)
 
