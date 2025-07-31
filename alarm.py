@@ -3,6 +3,7 @@ from mqtt import MQTT
 from rtc import RTC
 from configuration import Configuration
 from buttons import Buttons
+from display import Display
 from scheduler import Scheduler
 from util import singleton
 from speaker import Speaker
@@ -16,10 +17,13 @@ class Alarm:
         self.rtc = RTC()
         self.speaker = Speaker(scheduler)
         self.buttons = Buttons(scheduler)
+        self.display = Display(scheduler)
         self.alarm_active=False
         self.alarm_matched=False
         self.beep_count=0
         self.max_beeps=50
+        
+        self.show_alarm_icon()
 
         # add the cancel
         self.buttons.add_callback(2, self.cancel_alarm)
@@ -33,6 +37,12 @@ class Alarm:
         mqtt.register_topic_callback(
             "alarm/set", self.mqtt_callback)            
 
+    def show_alarm_icon(self):
+        if self.configuration.enabled:
+            self.display.show_icon("AlarmOn")
+        else:
+            self.display.hide_icon("AlarmOn")
+                
     async def ticker_callback(self):
         if self.configuration.enabled:
             now = self.rtc.get_time()
@@ -85,6 +95,8 @@ class Alarm:
             else:
                 print("disable alarm")
                 self.configuration.enabled = False
+              
+            self.show_alarm_icon()
 
         elif topic.endswith("alarm/set"):
             # message is in the form of "hh:mm"
