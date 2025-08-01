@@ -191,6 +191,9 @@ class Display:
                                 symbol, delay=0, clear=False)
 
     async def show_message(self, text: str):
+        # need to convert message to upper case
+        text = text.upper()
+        # TODO: do we check that each char is in self.ziku?
         self.showing_time = False
         if len(text) > 3:
             await self.animate_text(text)

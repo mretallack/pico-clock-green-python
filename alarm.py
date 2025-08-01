@@ -7,6 +7,7 @@ from display import Display
 from scheduler import Scheduler
 from util import singleton
 from speaker import Speaker
+from clock import Clock
 
 @singleton
 class Alarm:
@@ -18,10 +19,12 @@ class Alarm:
         self.speaker = Speaker(scheduler)
         self.buttons = Buttons(scheduler)
         self.display = Display(scheduler)
+        self.clock = Clock(scheduler)
         self.alarm_active=False
         self.alarm_matched=False
         self.beep_count=0
         self.max_beeps=50
+        self.alarm_message=None
         
         self.show_alarm_icon()
 
@@ -35,7 +38,9 @@ class Alarm:
         mqtt.register_topic_callback(
             "alarm/enable", self.mqtt_callback)
         mqtt.register_topic_callback(
-            "alarm/set", self.mqtt_callback)            
+            "alarm/set", self.mqtt_callback)     
+        mqtt.register_topic_callback(
+            "alarm/message", self.mqtt_callback)                     
 
     def show_alarm_icon(self):
         if self.configuration.enabled:
@@ -46,10 +51,11 @@ class Alarm:
     async def ticker_callback(self):
         if self.configuration.enabled:
             now = self.rtc.get_time()
-            if now[3] == self.configuration.hour and now[4] == self.configuration.minute:                
+            hour, minute = self.parse_time(self.configuration.time)
+            if now[3] == hour and now[4] == minute:                
                 # check that we haven't already triggered the alarm
                 if not self.alarm_matched:
-                    print(f"alarm trigger at {now[3]}:{now[4]}")
+                    print(f"alarm trigger at {hour}:{minute}")
                     self.alarm_matched=True
                     # trigger alarm
                     self.trigger_alarm()
@@ -61,6 +67,10 @@ class Alarm:
         if self.alarm_active==False:
             self.alarm_active=True
 
+            # display the requested message
+            if self.alarm_message:
+                self.clock.show_message(self.alarm_message)
+
             # ok, now trigger the alarm
             self.scheduler.schedule("alarm_beep", 1000, self.beeper_callback)
 
@@ -69,6 +79,22 @@ class Alarm:
         self.beep_count=self.beep_count+1
         if self.beep_count>self.max_beeps:
             await self.cancel_alarm()
+
+    def parse_time(self, timevalue):
+
+        # timevalue is in the form of "hh:mm"
+        # split it into hour and minute
+        # check that the message is correctly formatted
+        # it needs to be number:number        
+        hour=None
+        minute=None
+        if ":" in timevalue:                                            
+            parts = timevalue.split(":")
+            if len(parts) >= 2:
+                hour = int(parts[0])
+                minute = int(parts[1])
+
+        return hour, minute
 
 
     async def cancel_alarm(self):
@@ -96,16 +122,13 @@ class Alarm:
                 print("disable alarm")
                 self.configuration.enabled = False
               
-            self.show_alarm_icon()
+            self.show_alarm_icon()            
 
         elif topic.endswith("alarm/set"):
-            # message is in the form of "hh:mm"
-            # split it into hour and minute
-            # check that the message is correctly formatted
-            # it needs to be number:number
-            if ":" in message:                                            
-                parts = message.split(":")
-                if len(parts) >= 2:
-                    self.configuration.hour = int(parts[0])
-                    self.configuration.minute = int(parts[1])
-                    print(f"set alarm to {self.configuration.hour}:{self.configuration.minute}")
+            self.configuration.time = message
+            
+            print(f"set alarm to {self.configuration.time}")
+
+        elif topic.endswith("alarm/message"):
+            self.alarm_message=message
+            print(f"set alarm message to {self.alarm_message}")

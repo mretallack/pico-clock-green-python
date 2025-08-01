@@ -16,7 +16,13 @@ class WLAN:
         self.wlan = None
         self.rtc = RTC()
         if self.configuration.enabled:
-            self.connect_to_wifi()
+            while True:
+                try:
+                    self.connect_to_wifi()
+                    break
+                except Exception as e:
+                    print(f"Error connecting to WiFi: {e}")
+                    time.sleep(2)
 
     def connect_to_wifi(self):
         import network
