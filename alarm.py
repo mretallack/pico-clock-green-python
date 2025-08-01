@@ -66,6 +66,7 @@ class Alarm:
 
         if self.alarm_active==False:
             self.alarm_active=True
+            self.beep_count=0
 
             # display the requested message
             if self.alarm_message:
