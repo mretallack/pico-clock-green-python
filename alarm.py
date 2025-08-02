@@ -23,7 +23,7 @@ class Alarm:
         self.alarm_active=False
         self.alarm_matched=False
         self.beep_count=0
-        self.max_beeps=50
+        self.max_beeps=100
         self.alarm_message=None
         
         self.show_alarm_icon()
@@ -70,13 +70,16 @@ class Alarm:
 
             # display the requested message
             if self.alarm_message:
-                self.clock.show_message(self.alarm_message)
+                self.clock.show_message("      " + self.alarm_message)
 
             # ok, now trigger the alarm
-            self.scheduler.schedule("alarm_beep", 1000, self.beeper_callback)
+            self.scheduler.schedule("alarm_beep", 200, self.beeper_callback)
 
     async def beeper_callback(self):
-        self.speaker.beep(200)
+        # beep 3, then gap, then repeat...   
+        if self.beep_count % 4 != 0:
+            self.speaker.beep(100)
+        # check we have not beeped too much
         self.beep_count=self.beep_count+1
         if self.beep_count>self.max_beeps:
             await self.cancel_alarm()
