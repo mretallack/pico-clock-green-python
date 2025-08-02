@@ -8,6 +8,7 @@ from scheduler import Scheduler
 from util import singleton
 from speaker import Speaker
 from clock import Clock
+from apps import Apps
 
 @singleton
 class Alarm:
@@ -16,15 +17,16 @@ class Alarm:
         self.configuration = Configuration().alarm_config
         self.mqtt = mqtt
         self.rtc = RTC()
+        self.apps = Apps(scheduler)
         self.speaker = Speaker(scheduler)
         self.buttons = Buttons(scheduler)
         self.display = Display(scheduler)
-        self.clock = Clock(scheduler)
         self.alarm_active=False
         self.alarm_matched=False
         self.beep_count=0
         self.max_beeps=100
         self.alarm_message=None
+        self.message=None
         
         self.show_alarm_icon()
 
@@ -62,20 +64,32 @@ class Alarm:
             else:
                 self.alarm_matched=False
         
+    async def update_message(self):
+        if self.message!=None:
+            await self.display.show_message(self.message)
+            self.message = None
+            
+    
     def trigger_alarm(self):
 
         if self.alarm_active==False:
             self.alarm_active=True
             self.beep_count=0
 
+            print("Disable current app")
+            self.apps.disable_current_app()
+            
             # display the requested message
-            if self.alarm_message:
-                self.clock.show_message("      " + self.alarm_message)
+            self.message=self.alarm_message
 
             # ok, now trigger the alarm
             self.scheduler.schedule("alarm_beep", 200, self.beeper_callback)
 
     async def beeper_callback(self):
+    
+        # see if we need to update the message
+        await self.update_message()
+    
         # beep 3, then gap, then repeat...   
         if self.beep_count % 4 != 0:
             self.speaker.beep(100)
@@ -109,6 +123,8 @@ class Alarm:
         self.scheduler.remove("alarm_beep")
 
         self.alarm_active=False
+        
+        self.apps.enable_current_app()
 
     def mqtt_callback(self, topic, message):
 
