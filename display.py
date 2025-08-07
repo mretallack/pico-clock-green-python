@@ -24,6 +24,7 @@ class Display:
         self.le = Pin(12, Pin.OUT)
         self.ain = ADC(26)
 
+        self.time=None
         self.row = 0
         self.leds = [[0] * 32 for i in range(0, 8)]
         self.animating = False
@@ -93,9 +94,10 @@ class Display:
             await self.process_callback_queue()
 
     async def process_callback_queue(self, *args):
-        if len(self.display_queue) == 0:
-            if not self.showing_time:
-                await self.show_time()
+        if len(self.display_queue) == 0:          
+            # call show test directly, as we always want to 
+            # re-display the current time 
+            await self.show_text(self.time)
         else:
             await self.display_queue[0].callback()
             self.display_queue.pop(0)
@@ -150,6 +152,8 @@ class Display:
             else:
                 c = text[i]
                 i += 1
+            if c not in self.ziku:
+                c="-"
             width = self.ziku[c].width
             self.display_text_width += width
         # account for whitespace between text words
@@ -168,6 +172,8 @@ class Display:
             else:
                 c = text[i]
                 i += 1
+            if c not in self.ziku:
+                c="-"
             self.show_char(c, pos)
             width = self.ziku[c].width
             pos += width + 1
@@ -191,10 +197,9 @@ class Display:
                                 symbol, delay=0, clear=False)
 
     async def show_message(self, text: str):
-        # need to convert message to upper case
-        #text = text.upper()
-        # TODO: do we check that each char is in self.ziku?
         self.showing_time = False
+        # convert text to upper case
+        text=text.upper()
         if len(text) > 3:
             await self.animate_text(text)
         else:
@@ -431,4 +436,5 @@ class Display:
             ".": self.Character(width=1, rows=[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]),
             "-": self.Character(width=2, rows=[0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00]),
             "/": self.Character(width=2, rows=[0x02, 0x02, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01]),
+            "%": self.Character(width=4, rows=[0x06, 0x09, 0x02, 0x02, 0x04, 0x06, 0x09]),
         }

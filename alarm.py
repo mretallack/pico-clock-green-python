@@ -21,6 +21,7 @@ class Alarm:
         self.speaker = Speaker(scheduler)
         self.buttons = Buttons(scheduler)
         self.display = Display(scheduler)
+        self.clock = Clock(scheduler)
         self.alarm_active=False
         self.alarm_matched=False
         self.beep_count=0
@@ -151,4 +152,5 @@ class Alarm:
 
         elif topic.endswith("alarm/message"):
             self.alarm_message=message
+            self.clock.set_status_message("      "+message)
             print(f"set alarm message to {self.alarm_message}")

@@ -18,7 +18,8 @@ class Clock(App):
         self.hour = 0
         self.minute = 0
         self.second = 0
-        self.message = None
+        self.status_message = None
+        self.last_status_message=0
         scheduler.schedule(SCHEDULER_CLOCK_SECOND, 1000, self.secs_callback)
 
     async def enable(self):
@@ -38,6 +39,7 @@ class Clock(App):
 
     async def secs_callback(self):
         if self.enabled:
+            self.last_status_message=self.last_status_message+1
             await self.update_time()
             if self.should_blink():
                 if self.second % 2 == 0:
@@ -52,20 +54,22 @@ class Clock(App):
 
     async def update_time(self):
 
-        if self.message:
-            await self.display.show_message(self.message)
-            self.message = None
-        else:
-            t = self.rtc.get_time()
-            self.second = t[5]
-            if self.hour != t[3] or self.minute != t[4]:
-                self.hour = t[3]
-                self.minute = t[4]
-                self.show_time_icon()
-                self.display.show_day(t[6])
-                await self.show_time()
-            elif t[5] == 20 and self.config.show_temp:
-                await self.show_temperature()
+        t = self.rtc.get_time()
+        self.second = t[5]
+        if self.hour != t[3] or self.minute != t[4]:
+            self.hour = t[3]
+            self.minute = t[4]
+            self.show_time_icon()
+            self.display.show_day(t[6])
+            await self.show_time()
+        elif t[5] == 20 and self.config.show_temp:
+            await self.show_temperature()
+
+        elif self.config.show_status and self.status_message != None:
+            # only display status every 3 minutes
+            if self.last_status_message>((self.config.status_period*60)):
+                await self.show_status()
+                self.last_status_message=0
 
     async def show_time(self):
         hour = self.hour
@@ -82,9 +86,12 @@ class Clock(App):
                 self.display.show_icon("AM")
                 self.display.hide_icon("PM")
 
-    def show_message(self, text: str):        
-        self.message=text
+    def set_status_message(self, text: str):        
+        self.status_message=text
 
+    async def show_status(self):
+        await self.display.show_message(self.status_message)
+        
     async def show_temperature(self):
         temp = self.rtc.get_temperature()
         await self.display.show_temperature(temp)
